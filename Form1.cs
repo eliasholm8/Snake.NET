@@ -14,9 +14,10 @@ namespace Snake.NET
     {
         public int direction = 0;
         public int stepLength = 20;
-        public int dx = 0;
+        public int dx = 20;
         public int dy = 0;
         public int size = 20;
+        public bool isPaused = false;
 
         Random rnd = new Random();
 
@@ -26,15 +27,32 @@ namespace Snake.NET
         {
             InitializeComponent();
         }
+        private void StartGame()
+        {
+            dy = 0;
+            dx = stepLength;
+            snakeList.Clear();
+            lblGameOver.Visible = false;
+            timer1.Start();
+            snakeList.Add(new Rectangle(20, 20, size, size));
+            NewFood();
+        }
 
         private void panel1_Paint(object sender, PaintEventArgs e)
         {
             Graphics g = e.Graphics;
             g.FillRectangle(Brushes.Red, food);
 
-            foreach (Rectangle rec in snakeList)
+            foreach (var (rec, i) in snakeList.Select((rec, i) => (rec,i)))
             {
-                g.FillRectangle(Brushes.Blue, rec);
+                if (i % 2 == 0)
+                {
+                    g.FillRectangle(Brushes.LightGreen, rec);
+                }
+                else
+                {
+                    g.FillRectangle(Brushes.Green, rec);
+                }
             }
 
         }
@@ -73,65 +91,180 @@ namespace Snake.NET
                 NewFood();
             }
         }
-        private void StartGame()
-        {
-            snakeList.Add(new Rectangle(20, 20, size, size));
-            timer1.Start();
-            NewFood();
-        }
         private void Form1_Load(object sender, EventArgs e)
         {
 
         }
 
-        private void Form1_KeyDown(object sender, KeyEventArgs e)
+        private void CheckKey()
         {
-            if (e.KeyCode == Keys.Up)
+            switch (direction)
             {
-                direction = 1;
-                dy = -stepLength;
-                dx = 0;
+                case 1:
+                    if (direction != 3)
+                    {
+                        dy = -stepLength;
+                        dx = 0;
+                    }
+                    break;
+
+                case 2:
+                    if (direction != 4)
+                    {                        
+                        dx = stepLength;
+                        dy = 0;
+                    }
+                    break;
+
+                case 3:
+                    if (direction != 1)
+                    {
+                        dy = stepLength;
+                        dx = 0;
+                    }
+                    break;
+
+                case 4:
+                    if (direction != 2)
+                    {
+                        dx = -stepLength;
+                        dy = 0;
+                    }
+                    break;
+
+                default:
+                    break;
             }
-            else if (e.KeyCode == Keys.Down)
+        }
+        private async void Form1_KeyDown(object sender, KeyEventArgs e)
+        {           
+
+            switch (e.KeyCode)
             {
-                direction = 3;
-                dy = stepLength;
-                dx = 0;
+                case Keys.Up:
+                    if (direction != 3)
+                    {
+                        direction = 1;
+                        dy = -stepLength;
+                        dx = 0;
+                    }
+                    break;
+
+                case Keys.Right:
+
+                    if (direction != 4)
+                    {
+                        direction = 2;
+                        dx = stepLength;
+                        dy = 0;
+                    }
+                    break;
+
+                case Keys.Down:
+                    if (direction != 1)
+                    {
+                        direction = 3;
+                        dy = stepLength;
+                        dx = 0;
+                    }
+                    break;
+
+                case Keys.Left:
+                    if (direction != 2)
+                    {
+                        direction = 4;
+                        dx = -stepLength;
+                        dy = 0;
+                    }
+                    break;
+
+                default:
+                    break;
             }
-            else if (e.KeyCode == Keys.Left)
+            
+
+
+            if (false)
             {
-                direction = 3;
-                dx = -stepLength;
-                dy = 0;
+                if (e.KeyCode == Keys.Up)
+                {
+                    direction = 1;
+                    
+                }
+                else if (e.KeyCode == Keys.Down)
+                {
+                    direction = 3;
+                    
+                }
+                else if (e.KeyCode == Keys.Left)
+                {
+                    direction = 3;
+                    dx = -stepLength;
+                    dy = 0;
+                }
+                else if (e.KeyCode == Keys.Right)
+                {
+                    direction = 2;
+                    dx = stepLength;
+                    dy = 0;
+                }                   
             }
-            else if (e.KeyCode == Keys.Right)
-            {
-                direction = 2;
-                dx = stepLength;
-                dy = 0;
-            }                       
+
         }
 
-        private void timer1_Tick(object sender, EventArgs e)
+        private async void timer1_Tick(object sender, EventArgs e)
         {
-            panel1.Invalidate();
-            
-            snakeList.Insert(0, new Rectangle(snakeList[0].X + dx, snakeList[0].Y + dy, size, size));
+            Rectangle temp;
+            int xHeadPosition,yHeadPosition;
 
-            if (CheckIfSnake(snakeList[0]))
+            xHeadPosition = snakeList[0].X + dx;
+            yHeadPosition = snakeList[0].Y + dy;
+
+            int left, top;
+
+            left = panel1.Left;
+            top = panel1.Top;
+
+
+            temp = new Rectangle(xHeadPosition, yHeadPosition, size, size);
+
+            if (xHeadPosition <= 0)
+            {
+                temp = new Rectangle(panel1.Right - size, yHeadPosition, size, size);
+            }
+            if (xHeadPosition >= panel1.Width)
+            {
+                temp = new Rectangle(panel1.Left, yHeadPosition, size, size);
+            }
+            if (yHeadPosition <= 0)
+            {
+                temp = new Rectangle(xHeadPosition, panel1.Height - size, size, size);
+            }
+            if (yHeadPosition >= panel1.Height)
+            {
+                temp = new Rectangle(xHeadPosition, 0 + size, size, size);
+            }
+
+            if (CheckIfSnake(temp))
             {
                 GameOver();
             }
             else
             {
-                snakeList.RemoveAt(snakeList.Count - 1);
+                snakeList.Insert(0, temp);
                 
+                snakeList.RemoveAt(snakeList.Count - 1);           
             }
-
+            panel1.Invalidate();
 
             if (snakeList[0].IntersectsWith(food))
             {
-                snakeList.Insert(snakeList.Count, new Rectangle(snakeList[snakeList.Count - 1].X, snakeList[snakeList.Count - 1].Y, size, size));
+                int xPosition, yPosition;
+
+                xPosition = snakeList[snakeList.Count - 1].X;
+                yPosition = snakeList[snakeList.Count - 1].Y;
+
+                snakeList.Insert(snakeList.Count, new Rectangle(xPosition, yPosition, size, size));
                 NewFood();
             }
             lblScore.Text = $"Score: {(snakeList.Count() - 1)}";
@@ -144,8 +277,18 @@ namespace Snake.NET
         private void GameOver()
         {
             timer1.Stop();
-
+            lblGameOver.Visible = true;
+            lblGameOver.Text = "wasted";
+        }
+        private void PauseGame()
+        {
+            isPaused = !isPaused;
+            timer1.Enabled = isPaused;
         }
 
+        private void lblPause_Click(object sender, EventArgs e)
+        {
+            PauseGame();
+        }
     }
 }
